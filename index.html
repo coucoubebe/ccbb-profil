@@ -291,9 +291,9 @@
     </div>
 
     <div class="links">
-      <a href="https://discord.com" target="_blank" rel="noopener"><span class="ico">▸</span> Discord</a>
+      <a href="https://discord.gg/d3u6hn4CKG" target="_blank" rel="noopener"><span class="ico">▸</span> Discord</a>
       <a href="https://x.com" target="_blank" rel="noopener"><span class="ico">▸</span> X / Twitter</a>
-      <a href="https://instagram.com" target="_blank" rel="noopener"><span class="ico">▸</span> Instagram</a>
+      <a href="https://instagram.com/veritablemalade/" target="_blank" rel="noopener"><span class="ico">▸</span> Instagram</a>
       <a href="https://github.com" target="_blank" rel="noopener"><span class="ico">▸</span> GitHub</a>
     </div>
 
@@ -346,10 +346,10 @@
   // ---------- Discord live status (Lanyard API) ----------
   // 1. Rejoins le serveur Discord de Lanyard : https://discord.gg/lanyard (obligatoire, sinon ça ne marche pas)
   // 2. Remplace la valeur ci-dessous par TON ID Discord (clic droit sur ton profil > Copier l'ID, mode développeur activé)
-  const DISCORD_ID = "REMPLACE_PAR_TON_ID_DISCORD";
+  const DISCORD_ID = "1313603583068864554";
 
   async function loadDiscord(){
-    if (DISCORD_ID === "REMPLACE_PAR_TON_ID_DISCORD") return;
+    if (DISCORD_ID === "1313603583068864554") return;
     try{
       const res = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_ID}`);
       const json = await res.json();
