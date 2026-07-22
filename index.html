@@ -403,7 +403,7 @@
 </main>
 
 <!-- ============================ MUSIC PLAYER ============================ -->
-<div id="music-player">
+<div id="music-player" class="minimized">
   <div class="mp-top">
     <button id="mp-minimize" title="Réduire / agrandir">▁</button>
   </div>
@@ -838,6 +838,7 @@ setInterval(fetchTwitch, 60000);
 window.addEventListener("load", () => {
   setTimeout(() => {
     document.getElementById("boot-screen").classList.add("hidden");
+    playTrackAt(pickNextTrackIndex());
   }, 2300);
 });
 </script>
