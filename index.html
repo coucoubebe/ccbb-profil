@@ -28,19 +28,29 @@
 
   #bg-video{
     position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
+    inset:-20px;
+    width:calc(100% + 40px);
+    height:calc(100% + 40px);
     object-fit:cover;
     z-index:0;
-    filter: blur(6px) brightness(0.75) saturate(1.35);
-    transform: scale(1.05);
+    filter: blur(12px) brightness(0.65) saturate(1.4);
+    transform: scale(1.1);
   }
   .overlay{
     position:fixed; inset:0;
-    background:linear-gradient(180deg, rgba(2,6,12,0.35) 0%, rgba(2,6,12,0.15) 45%, rgba(2,6,12,0.55) 100%);
+    background:rgba(2,6,12,0.2);
     z-index:1;
     pointer-events:none;
+  }
+  .bloom{
+    position:fixed;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(127,217,255,0.25), transparent 35%),
+      radial-gradient(circle at 70% 60%, rgba(120,80,255,0.2), transparent 40%);
+    filter:blur(50px);
   }
   .bg-bloom{
     position:fixed;
@@ -231,6 +241,7 @@
 </video>
 <div class="bg-bloom"></div>
 <div class="overlay"></div>
+<div class="sweep"></div>
 </video>
 <div class="overlay"></div>
 <div class="sweep"></div>
