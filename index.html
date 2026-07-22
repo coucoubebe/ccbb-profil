@@ -42,6 +42,15 @@
     z-index:1;
     pointer-events:none;
   }
+  .bg-bloom{
+    position:fixed;
+    inset:-50px;
+    z-index:0;
+    background:inherit;
+    filter:blur(70px);
+    opacity:0.35;
+    pointer-events:none;
+  }
   .sweep{
     position:fixed; inset:0;
     z-index:1;
@@ -218,8 +227,10 @@
 <body>
 
 <video id="bg-video" autoplay muted loop playsinline>
-  <!-- TODO : remplace "video.mp4" par le nom de ton fichier vidéo une fois ajouté -->
   <source src="video.webm" type="video/webm">
+</video>
+<div class="bg-bloom"></div>
+<div class="overlay"></div>
 </video>
 <div class="overlay"></div>
 <div class="sweep"></div>
