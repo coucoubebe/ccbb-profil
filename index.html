@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>coucoubebe</title>
+<meta name="description" content="coucoubebe.cc">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#08080c;
+    --bg-2:#0f0f16;
+    --card:rgba(20,20,30,0.55);
+    --border:rgba(255,255,255,0.08);
+    --accent:#ff2d78;
+    --accent-2:#7c3aed;
+    --text:#f2f2f5;
+    --text-dim:#8a8a96;
+    --online:#23d18b;
+    --idle:#f6b73c;
+    --dnd:#ed4245;
+    --offline:#6b6b76;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+
+  #bgcanvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(124,58,237,0.18), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 100% 100%, rgba(255,45,120,0.12), transparent 60%),
+      var(--bg);
+  }
+
+  /* ---------- CLICK TO ENTER ---------- */
+  #gate{
+    position:fixed;
+    inset:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+    background:var(--bg);
+    cursor:pointer;
+    transition:opacity .6s ease, visibility .6s ease;
+  }
+  #gate.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+  #gate .mark{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15px;
+    letter-spacing:0.35em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  #gate .enter{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:clamp(28px,6vw,44px);
+    letter-spacing:0.02em;
+    background:linear-gradient(90deg,var(--text),var(--accent) 60%,var(--accent-2));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{filter:brightness(1);}
+    50%{filter:brightness(1.35);}
+  }
+  #gate .hint{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:0.1em;
+  }
+
+  /* ---------- CARD ---------- */
+  #stage{
+    position:relative;
+    z-index:1;
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .card{
+    position:relative;
+    width:100%;
+    max-width:380px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:36px 28px 28px;
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+    opacity:0;
+    transform:translateY(16px);
+    transition:opacity .7s ease, transform .7s ease;
+    overflow:hidden;
+  }
+  .card.show{opacity:1;transform:translateY(0);}
+
+  /* scanline sweep — signature element, plays once on reveal */
+  .card::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    height:120%;
+    top:-110%;
+    background:linear-gradient(180deg, transparent, rgba(255,45,120,0.16), transparent);
+    pointer-events:none;
+  }
+  .card.show::after{
+    animation:sweep 1.4s ease-out .15s 1;
+  }
+  @keyframes sweep{
+    to{ top:110%; }
+  }
+
+  .avatar-wrap{
+    width:88px;height:88px;
+    margin:0 auto 16px;
+    position:relative;
+  }
+  .avatar{
+    width:100%;height:100%;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--border);
+    display:block;
+    transition:filter .25s ease;
+  }
+  .avatar-wrap:hover .avatar{
+    filter:drop-shadow(2px 0 0 rgba(255,45,120,0.6)) drop-shadow(-2px 0 0 rgba(124,58,237,0.6));
+  }
+  .status-dot{
+    position:absolute;
+    bottom:2px; right:2px;
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--offline);
+    border:3px solid #16161f;
+    transition:background .3s ease;
+  }
+
+  .name{
+    text-align:center;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.01em;
+  }
+  .handle{
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--accent);
+    margin-top:4px;
+    letter-spacing:0.02em;
+  }
+  .bio{
+    text-align:center;
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--text-dim);
+    margin:14px 0 20px;
+  }
+
+  .discord-chip{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px 12px;
+    margin-bottom:18px;
+    font-size:12.5px;
+  }
+  .discord-chip img{width:28px;height:28px;border-radius:50%;}
+  .discord-chip .dtext{display:flex;flex-direction:column;gap:1px;}
+  .discord-chip .dname{font-weight:600;font-size:12.5px;}
+  .discord-chip .dstate{color:var(--text-dim);font-size:11.5px;font-family:'JetBrains Mono',monospace;}
+
+  .links{
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+  }
+  .links a{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    text-decoration:none;
+    color:var(--text);
+    font-size:13.5px;
+    font-weight:500;
+    padding:11px 14px;
+    border-radius:11px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,0.02);
+    transition:border-color .2s ease, background .2s ease, transform .15s ease;
+  }
+  .links a:hover{
+    border-color:var(--accent);
+    background:rgba(255,45,120,0.07);
+    transform:translateY(-1px);
+  }
+  .links a .ico{width:16px;text-align:center;opacity:.85;}
+
+  .footer{
+    margin-top:22px;
+    display:flex;
+    justify-content:space-between;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    color:var(--text-dim);
+    letter-spacing:0.03em;
+  }
+
+  #soundtoggle{
+    position:fixed;
+    bottom:18px; right:18px;
+    z-index:10;
+    width:40px;height:40px;
+    border-radius:50%;
+    background:rgba(20,20,30,0.6);
+    border:1px solid var(--border);
+    backdrop-filter:blur(10px);
+    color:var(--text);
+    font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  #soundtoggle.show{opacity:1;}
+
+  @media (prefers-reduced-motion: reduce){
+    .card, .card.show, #gate .enter{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div id="bgcanvas"></div>
+
+<div id="gate">
+  <div class="mark">coucoubebe.cc</div>
+  <div class="enter">click to enter</div>
+  <div class="hint">// débloque le son</div>
+</div>
+
+<div id="stage">
+  <div class="card" id="card">
+
+    <div class="avatar-wrap">
+      <!-- Remplace assets/avatar.jpg par ta photo/avatar -->
+      <img class="avatar" src="assets/avatar.jpg" alt="avatar" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=coucoubebe'">
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+
+    <div class="name">coucoubebe</div>
+    <div class="handle">@coucoubebe.cc</div>
+    <div class="bio">petite bio ici — remplace ce texte par ce que tu veux dire de toi ✦</div>
+
+    <!-- Statut Discord en live (Lanyard). Remplace DISCORD_ID plus bas dans le script. -->
+    <div class="discord-chip" id="discordChip" style="display:none;">
+      <img id="dAvatar" src="" alt="">
+      <div class="dtext">
+        <div class="dname" id="dName">—</div>
+        <div class="dstate" id="dState">connexion…</div>
+      </div>
+    </div>
+
+    <div class="links">
+      <a href="https://discord.com" target="_blank" rel="noopener"><span class="ico">▸</span> Discord</a>
+      <a href="https://x.com" target="_blank" rel="noopener"><span class="ico">▸</span> X / Twitter</a>
+      <a href="https://instagram.com" target="_blank" rel="noopener"><span class="ico">▸</span> Instagram</a>
+      <a href="https://github.com" target="_blank" rel="noopener"><span class="ico">▸</span> GitHub</a>
+    </div>
+
+    <div class="footer">
+      <span id="visits">visites: —</span>
+      <span id="clock">--:--:--</span>
+    </div>
+
+  </div>
+</div>
+
+<button id="soundtoggle" aria-label="Couper/activer le son">🔊</button>
+
+<!-- Remplace assets/song.mp3 par ta musique -->
+<audio id="bgm" src="assets/song.mp3" loop preload="auto"></audio>
+
+<script>
+  // ---------- Click to enter : débloque l'audio ----------
+  const gate = document.getElementById('gate');
+  const card = document.getElementById('card');
+  const bgm = document.getElementById('bgm');
+  const soundBtn = document.getElementById('soundtoggle');
+
+  gate.addEventListener('click', () => {
+    gate.classList.add('hidden');
+    card.classList.add('show');
+    soundBtn.classList.add('show');
+    bgm.volume = 0.5;
+    bgm.play().catch(()=>{});
+  }, { once:true });
+
+  soundBtn.addEventListener('click', () => {
+    if (bgm.paused) { bgm.play(); soundBtn.textContent = '🔊'; }
+    else { bgm.pause(); soundBtn.textContent = '🔇'; }
+  });
+
+  // ---------- Horloge ----------
+  function tick(){
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('fr-FR');
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ---------- Compteur de visites (local, cosmétique) ----------
+  const key = 'coucoubebe_visits';
+  const n = (parseInt(localStorage.getItem(key) || '0', 10)) + 1;
+  localStorage.setItem(key, n);
+  document.getElementById('visits').textContent = 'visites: ' + n;
+
+  // ---------- Discord live status (Lanyard API) ----------
+  // 1. Rejoins le serveur Discord de Lanyard : https://discord.gg/lanyard (obligatoire, sinon ça ne marche pas)
+  // 2. Remplace la valeur ci-dessous par TON ID Discord (clic droit sur ton profil > Copier l'ID, mode développeur activé)
+  const DISCORD_ID = "REMPLACE_PAR_TON_ID_DISCORD";
+
+  async function loadDiscord(){
+    if (DISCORD_ID === "REMPLACE_PAR_TON_ID_DISCORD") return;
+    try{
+      const res = await fetch(`https://api.lanyard.rest/v1/users/${DISCORD_ID}`);
+      const json = await res.json();
+      if (!json.success) return;
+      const d = json.data;
+      const chip = document.getElementById('discordChip');
+      chip.style.display = 'flex';
+      document.getElementById('dAvatar').src =
+        `https://cdn.discordapp.com/avatars/${d.discord_user.id}/${d.discord_user.avatar}.png?size=64`;
+      document.getElementById('dName').textContent =
+        d.discord_user.global_name || d.discord_user.username;
+
+      const activity = d.activities.find(a => a.type === 0);
+      document.getElementById('dState').textContent = activity
+        ? `joue à ${activity.name}`
+        : ({online:'en ligne', idle:'absent', dnd:'ne pas déranger', offline:'hors ligne'}[d.discord_status]);
+
+      document.getElementById('statusDot').style.background =
+        {online:'var(--online)', idle:'var(--idle)', dnd:'var(--dnd)', offline:'var(--offline)'}[d.discord_status];
+    }catch(e){ /* silencieux */ }
+  }
+  loadDiscord();
+  setInterval(loadDiscord, 20000);
+</script>
+
+</body>
+</html>
