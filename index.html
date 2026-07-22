@@ -411,7 +411,7 @@
   <div class="track-title" id="mp-title">—</div>
   <div class="track-artist" id="mp-artist">—</div>
   <div class="mp-controls">
-    <button class="mp-btn" id="mp-prev" title="Piste précédente (aléatoire)">
+    <button class="mp-btn" id="mp-prev" title="Piste précédente">
       <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6l-10 6 10 6z"/></svg>
     </button>
     <button class="mp-btn" id="mp-play" title="Lecture / Pause">
@@ -435,12 +435,15 @@
    ======================================================================= */
 const CONFIG = {
   discord: {
-    id: "1313603583068864554" // ton ID Discord (Lanyard)
+    id: "1313603583068864554", // ton ID Discord (Lanyard)
+    // TODO : remplace par le vrai lien d'invitation de ton serveur
+    serverLabel: "Mon serveur Discord",
+    serverSubtitle: "Rejoindre le serveur",
+    serverUrl: "https://discord.gg/TON_INVITE"
   },
   twitch: {
     channel: "coucoubebe75018" // ton nom de chaîne Twitch
   },
-  // TODO : ajoute tes liens TikTok et YouTube ici
   tiktok: {
     label: "@coucoubebe75018off",
     url: "https://tiktok.com/@coucoubebe75018off"
@@ -462,7 +465,7 @@ const CONFIG = {
     discord: "logos/discord.png",
     twitch: "logos/twitch.png",
     tiktok: "logos/tiktok.png",
-    youtube: "logos/youtube.png",
+    youtube: "logos/youtube.png"
   },
 
   // -----------------------------------------------------------------
@@ -512,7 +515,8 @@ function iconMarkup(cat){
    ======================================================================= */
 let categories = [
   { id:"discord", label:"Discord", type:"discord", statusClass:"", items:[
-    { title:"Chargement…", subtitle:"", badge:"", url:"#", pfp:null }
+    { title:"Chargement…", subtitle:"", badge:"", url:"#", pfp:null },
+    { title:CONFIG.discord.serverLabel, subtitle:CONFIG.discord.serverSubtitle, badge:"", url:CONFIG.discord.serverUrl, pfp:null }
   ]},
   { id:"twitch", label:"Twitch", type:"twitch", statusClass:"", items:[
     { title:CONFIG.twitch.channel, subtitle:"Vérification du live…", badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:null }
@@ -661,20 +665,20 @@ async function fetchDiscord(){
       if(act && act.name) subtitle = `${statusMap[d.discord_status]} · ${act.name}`;
     }
     categories[0].statusClass = statusClassMap[d.discord_status] || "";
-    categories[0].items = [{
+    categories[0].items[0] = {
       title: `${user.username}`,
       subtitle,
       badge: statusMap[d.discord_status],
       badgeClass: d.discord_status === "online" ? "online" : "",
       url: `https://discord.com/users/${user.id}`,
       pfp
-    }];
+    };
   }catch(err){
-    categories[0].items = [{
+    categories[0].items[0] = {
       title:"Discord indisponible",
       subtitle: err.message,
       badge:"", url:"#", pfp:null
-    }];
+    };
   }
   renderCategories();
   if(activeCatIndex === 0) renderSubmenu();
@@ -721,7 +725,10 @@ async function fetchTwitch(){
 
 /* =======================================================================
    LECTEUR DE MUSIQUE
-   - Tirage aléatoire, sans répéter un morceau parmi les 3 derniers joués
+   - Tirage aléatoire pour "suivant" (sans répéter un morceau parmi les
+     3 derniers tirés au sort)
+   - "Précédent" revient exactement sur la piste jouée avant (vrai
+     historique, pas un nouveau tirage)
    - Pochette + titre + artiste, play/pause, skip, volume, minimisation
    ======================================================================= */
 const musicAudio = new Audio();
@@ -741,8 +748,13 @@ const mp = {
 };
 
 let currentTrackIndex = null;
-let recentHistory = []; // indices des derniers morceaux joués (max 3)
+let recentHistory = []; // indices des derniers morceaux tirés au sort (max 3), sert à éviter les répétitions
 let isPlaying = false;
+
+// Historique réel de la séquence jouée, pour que "précédent" revienne
+// exactement sur la piste d'avant (pas un nouveau tirage aléatoire).
+let playHistory = [];
+let historyPointer = -1;
 
 const ICON_PLAY  = '<path d="M8 5v14l11-7z"/>';
 const ICON_PAUSE = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
@@ -791,7 +803,7 @@ function updatePlayIcon(){
 
 function togglePlay(){
   if(currentTrackIndex === null){
-    playTrackAt(pickNextTrackIndex());
+    goNext();
     return;
   }
   if(isPlaying){
@@ -804,17 +816,31 @@ function togglePlay(){
   updatePlayIcon();
 }
 
-function skipToRandom(){
-  playTrackAt(pickNextTrackIndex());
+function goNext(){
+  const idx = pickNextTrackIndex();
+  // si on avait reculé dans l'historique, on efface le "futur" existant
+  // (comme dans un navigateur : revenir en arrière puis avancer ouvre une nouvelle page)
+  playHistory = playHistory.slice(0, historyPointer + 1);
+  playHistory.push(idx);
+  historyPointer = playHistory.length - 1;
+  playTrackAt(idx);
+}
+
+function goPrev(){
+  if(historyPointer > 0){
+    historyPointer--;
+    playTrackAt(playHistory[historyPointer]);
+  }
+  // si on est déjà sur la toute première piste de l'historique, rien à faire
 }
 
 musicAudio.addEventListener("ended", () => {
-  playTrackAt(pickNextTrackIndex());
+  goNext();
 });
 
 mp.playBtn.addEventListener("click", togglePlay);
-mp.nextBtn.addEventListener("click", skipToRandom);
-mp.prevBtn.addEventListener("click", skipToRandom); // tirage aléatoire aussi en "précédent"
+mp.nextBtn.addEventListener("click", goNext);
+mp.prevBtn.addEventListener("click", goPrev);
 mp.volume.addEventListener("input", (e) => {
   musicAudio.volume = parseFloat(e.target.value);
 });
@@ -834,11 +860,12 @@ fetchTwitch();
 setInterval(fetchDiscord, 30000);
 setInterval(fetchTwitch, 60000);
 
-/* Animation de boot façon PS3 : on masque l'écran après un court instant */
+/* Animation de boot façon PS3 : on masque l'écran après un court instant,
+   puis on lance directement une musique */
 window.addEventListener("load", () => {
   setTimeout(() => {
     document.getElementById("boot-screen").classList.add("hidden");
-    playTrackAt(pickNextTrackIndex());
+    goNext();
   }, 2300);
 });
 </script>
