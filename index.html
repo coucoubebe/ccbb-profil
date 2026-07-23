@@ -39,14 +39,13 @@
     visibility:hidden;
     pointer-events:none;
   }
-  .boot-logo{
-    font-size:clamp(40px, 9vw, 80px);
-    font-weight:700;
-    color:var(--accent-strong);
-    letter-spacing:0.6em;
-    padding-left:0.6em; /* recentre visuellement malgré le letter-spacing */
+  .boot-logo-img{
+    max-width:min(46vw, 260px);
+    max-height:min(30vh, 220px);
+    width:auto;
+    height:auto;
     opacity:0;
-    text-shadow:0 0 30px var(--accent-dim), 0 0 70px rgba(127,217,255,0.35);
+    filter:drop-shadow(0 0 30px var(--accent-dim)) drop-shadow(0 0 70px rgba(127,217,255,0.35));
     animation: boot-in 2.1s cubic-bezier(.22,.61,.36,1) forwards;
   }
   .boot-bar{
@@ -71,9 +70,9 @@
     100%{ transform:translateX(280%); }
   }
   @keyframes boot-in{
-    0%{ opacity:0; letter-spacing:1em; transform:scale(0.9); }
-    45%{ opacity:1; letter-spacing:0.5em; transform:scale(1); }
-    100%{ opacity:1; letter-spacing:0.6em; transform:scale(1); }
+    0%{ opacity:0; transform:scale(0.85); }
+    45%{ opacity:1; transform:scale(1.03); }
+    100%{ opacity:1; transform:scale(1); }
   }
 
   #bg-video{
@@ -122,6 +121,29 @@
   @keyframes sweep{
     0%{background-position:120% 0;}
     100%{background-position:-20% 0;}
+  }
+
+  /* ============================ CORNER LOGO ============================ */
+  #corner-logo-wrap{
+    position:fixed;
+    top:20px; left:22px;
+    z-index:15;
+    width:46px; height:46px;
+    pointer-events:none;
+    transition: transform 0.25s cubic-bezier(.22,.61,.36,1);
+    will-change: transform;
+  }
+  #corner-logo-wrap img{
+    width:100%; height:100%;
+    object-fit:contain;
+    display:block;
+    opacity:0.92;
+    filter:drop-shadow(0 4px 14px rgba(0,0,0,0.5));
+    animation: corner-float 5s ease-in-out infinite;
+  }
+  @keyframes corner-float{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-3px) rotate(-2deg); }
   }
 
   main.xmb{
@@ -375,6 +397,7 @@
     .cat svg{ width:28px; height:28px; }
     .cat .label{ font-size:11px; }
     .submenu-inner{ max-width:100%; }
+    #corner-logo-wrap{ width:36px; height:36px; top:14px; left:14px; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -386,7 +409,7 @@
 
 <!-- ============================ BOOT SCREEN ============================ -->
 <div id="boot-screen">
-  <div class="boot-logo">CCBB</div>
+  <img class="boot-logo-img" src="logos/coucoubebe.png" alt="coucoubebe75018">
   <div class="boot-bar"></div>
 </div>
 
@@ -396,6 +419,11 @@
 <div class="bg-bloom"></div>
 <div class="overlay"></div>
 <div class="sweep"></div>
+
+<!-- ============================ CORNER LOGO ============================ -->
+<div id="corner-logo-wrap">
+  <img src="logos/ps75018.png" alt="ps75018">
+</div>
 
 <main class="xmb">
   <nav class="xmb-categories" id="categories"></nav>
@@ -439,18 +467,22 @@ const CONFIG = {
     // TODO : remplace par le vrai lien d'invitation de ton serveur
     serverLabel: "Mon serveur Discord",
     serverSubtitle: "Rejoindre le serveur",
-    serverUrl: "https://discord.gg/TON_INVITE"
+    serverUrl: "https://discord.gg/TON_INVITE",
+    serverPfp: "logos/server.png"
   },
   twitch: {
-    channel: "coucoubebe75018" // ton nom de chaîne Twitch
+    channel: "coucoubebe75018", // ton nom de chaîne Twitch
+    pfp: "logos/pfptwitch.png"
   },
   tiktok: {
     label: "@coucoubebe75018off",
-    url: "https://tiktok.com/@coucoubebe75018off"
+    url: "https://tiktok.com/@coucoubebe75018off",
+    pfp: "logos/pfptiktok.jpeg"
   },
   youtube: {
     label: "tjr pas de chaîne ça arrive",
-    url: "#"
+    url: "#",
+    pfp: "logos/pfpyoutube.png"
   },
 
   // -----------------------------------------------------------------
@@ -516,16 +548,16 @@ function iconMarkup(cat){
 let categories = [
   { id:"discord", label:"Discord", type:"discord", statusClass:"", items:[
     { title:"Chargement…", subtitle:"", badge:"", url:"#", pfp:null },
-    { title:CONFIG.discord.serverLabel, subtitle:CONFIG.discord.serverSubtitle, badge:"", url:CONFIG.discord.serverUrl, pfp:null }
+    { title:CONFIG.discord.serverLabel, subtitle:CONFIG.discord.serverSubtitle, badge:"", url:CONFIG.discord.serverUrl, pfp:CONFIG.discord.serverPfp }
   ]},
   { id:"twitch", label:"Twitch", type:"twitch", statusClass:"", items:[
-    { title:CONFIG.twitch.channel, subtitle:"Vérification du live…", badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:null }
+    { title:CONFIG.twitch.channel, subtitle:"Vérification du live…", badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:CONFIG.twitch.pfp }
   ]},
   { id:"tiktok", label:"TikTok", type:"static", items:[
-    { title:CONFIG.tiktok.label, subtitle:"Voir le profil", badge:"", url:CONFIG.tiktok.url, pfp:null }
+    { title:CONFIG.tiktok.label, subtitle:"Voir le profil", badge:"", url:CONFIG.tiktok.url, pfp:CONFIG.tiktok.pfp }
   ]},
   { id:"youtube", label:"YouTube", type:"static", items:[
-    { title:CONFIG.youtube.label, subtitle:"Voir la chaîne", badge:"", url:CONFIG.youtube.url, pfp:null }
+    { title:CONFIG.youtube.label, subtitle:"Voir la chaîne", badge:"", url:CONFIG.youtube.url, pfp:CONFIG.youtube.pfp }
   ]}
 ];
 
@@ -643,6 +675,19 @@ window.addEventListener("keydown", (e) => {
 window.addEventListener("resize", centerActiveCategory);
 
 /* =======================================================================
+   Logo du coin — léger effet de parallaxe au mouvement de la souris
+   ======================================================================= */
+const cornerLogoWrap = document.getElementById("corner-logo-wrap");
+window.addEventListener("mousemove", (e) => {
+  const nx = (e.clientX / window.innerWidth) - 0.5;
+  const ny = (e.clientY / window.innerHeight) - 0.5;
+  const tx = nx * 10;
+  const ty = ny * 8;
+  const rot = nx * 6;
+  cornerLogoWrap.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+});
+
+/* =======================================================================
    Discord — via Lanyard (api.lanyard.rest)
    NOTE : pour que ton statut soit suivi, tu dois avoir rejoint une fois
    le serveur Discord officiel de Lanyard : https://discord.gg/lanyard
@@ -710,13 +755,13 @@ async function fetchTwitch(){
       badge,
       badgeClass: isLive ? "live" : "",
       url: `https://twitch.tv/${CONFIG.twitch.channel}`,
-      pfp:null
+      pfp: CONFIG.twitch.pfp
     }];
   }catch(err){
     categories[1].items = [{
       title: CONFIG.twitch.channel,
       subtitle:"Statut indisponible",
-      badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:null
+      badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:CONFIG.twitch.pfp
     }];
   }
   renderCategories();
