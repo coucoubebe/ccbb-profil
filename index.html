@@ -142,10 +142,19 @@
   main.xmb{
     position:relative; z-index:2;
     height:100%;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    padding: 0 4vw;
+  }
+
+  /* La ligne de catégories est centrée verticalement de façon FIXE,
+     indépendamment de la hauteur du sous-menu en dessous (qui peut varier,
+     ex: bloc embed Twitch) — ainsi elle ne bouge jamais quand le contenu
+     du sous-menu change de taille. */
+  .xmb-categories-viewport{
+    position:absolute;
+    top:50%;
+    left:0; right:0;
+    transform:translateY(-50%);
+    padding:0 4vw;
+    overflow:hidden;
   }
 
   .xmb-categories{
@@ -220,8 +229,9 @@
   }
 
   .xmb-submenu{
-    margin-top:80px;
-    min-height:220px;
+    position:absolute;
+    top:calc(50% + 75px);
+    left:4vw; right:4vw;
   }
   .submenu-inner{
     display:flex;
@@ -262,6 +272,62 @@
   .submenu-item .meta{ display:flex; flex-direction:column; gap:3px; }
   .submenu-item .title{ font-size:15px; font-weight:700; }
   .submenu-item .subtitle{ font-size:12.5px; color:var(--text-dim); }
+
+  /* Bloc embed (ex: preview Twitch) — même largeur que les autres blocs,
+     mais empilé verticalement pour accueillir le lecteur vidéo. */
+  .submenu-item.embed-item{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    cursor:default;
+  }
+  .embed-item .embed-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+  }
+  .embed-item .embed-label .dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    background:#6b7280;
+    flex-shrink:0;
+  }
+  .embed-item .embed-label .dot.live{
+    background:var(--live);
+    box-shadow:0 0 8px var(--live);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  .twitch-embed-wrap{
+    position:relative;
+    width:100%;
+    padding-top:56.25%; /* ratio 16:9, cf. technique responsive-embed Twitch */
+    border-radius:10px;
+    overflow:hidden;
+    background:rgba(0,0,0,0.35);
+  }
+  .twitch-embed-wrap iframe{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    border:0;
+  }
+  .twitch-embed-wrap .embed-fallback{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:16px;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
   .badge{
     margin-left:auto;
     font-size:11px;
@@ -275,7 +341,10 @@
     flex-shrink:0;
   }
   .badge.live{ background:var(--live); color:white; }
-  .badge.online{ background:rgba(59,165,93,0.18); color:#7be79a; }
+  .badge.online{ background:rgba(59,165,93,0.2); color:#7be79a; border:1px solid rgba(59,165,93,0.5); }
+  .badge.idle{ background:rgba(250,166,26,0.2); color:#ffce7a; border:1px solid rgba(250,166,26,0.5); }
+  .badge.dnd{ background:rgba(237,66,69,0.2); color:#ff9297; border:1px solid rgba(237,66,69,0.5); }
+  .badge.offline{ background:rgba(107,114,128,0.2); color:#c9ced6; border:1px solid rgba(107,114,128,0.5); }
 
   .hint{
     position:fixed;
@@ -419,7 +488,9 @@
 </div>
 
 <main class="xmb">
-  <nav class="xmb-categories" id="categories"></nav>
+  <div class="xmb-categories-viewport">
+    <nav class="xmb-categories" id="categories"></nav>
+  </div>
   <section class="xmb-submenu" id="submenu"></section>
 </main>
 
@@ -460,7 +531,7 @@ const CONFIG = {
     // TODO : remplace par le vrai lien d'invitation de ton serveur
     serverLabel: "Mon serveur Discord",
     serverSubtitle: "Rejoindre le serveur",
-    serverUrl: "https://discord.gg/TON_INVITE",
+    serverUrl: "https://discord.gg/d3u6hn4CKG",
     serverPfp: "logos/server.png"
   },
   twitch: {
@@ -544,7 +615,8 @@ let categories = [
     { title:CONFIG.discord.serverLabel, subtitle:CONFIG.discord.serverSubtitle, badge:"", url:CONFIG.discord.serverUrl, pfp:CONFIG.discord.serverPfp }
   ]},
   { id:"twitch", label:"Twitch", type:"twitch", statusClass:"", items:[
-    { title:CONFIG.twitch.channel, subtitle:"Vérification du live…", badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:CONFIG.twitch.pfp }
+    { title:CONFIG.twitch.channel, subtitle:"Vérification du live…", badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:CONFIG.twitch.pfp },
+    { type:"twitch-embed", channel:CONFIG.twitch.channel, live:false, url:`https://twitch.tv/${CONFIG.twitch.channel}` }
   ]},
   { id:"tiktok", label:"TikTok", type:"static", items:[
     { title:CONFIG.tiktok.label, subtitle:"Voir le profil", badge:"", url:CONFIG.tiktok.url, pfp:CONFIG.tiktok.pfp }
@@ -612,6 +684,20 @@ function renderSubmenu(){
   const wrap = document.createElement("div");
   wrap.className = "submenu-inner";
   cat.items.forEach((item, i) => {
+    if(item.type === "twitch-embed"){
+      const div = document.createElement("div");
+      div.className = "submenu-item embed-item" + (i === activeItemIndex ? " selected" : "");
+      div.innerHTML = `
+        <div class="embed-label">
+          <span class="dot${item.live ? " live" : ""}"></span>
+          ${item.live ? "Live en cours" : "Preview de la chaîne"}
+        </div>
+        <div class="twitch-embed-wrap" id="twitch-embed-wrap"></div>
+      `;
+      wrap.appendChild(div);
+      mountTwitchEmbed(div.querySelector("#twitch-embed-wrap"), item.channel);
+      return;
+    }
     const a = document.createElement("a");
     a.href = item.url;
     a.target = "_blank";
@@ -621,7 +707,7 @@ function renderSubmenu(){
       ${item.pfp ? `<img class="pfp" src="${item.pfp}" alt="">` : `<div class="pfp"></div>`}
       <div class="meta">
         <div class="title">${item.title}</div>
-        <div class="subtitle">${item.subtitle}</div>
+        ${item.subtitle ? `<div class="subtitle">${item.subtitle}</div>` : ""}
       </div>
       ${item.badge ? `<div class="badge ${item.badgeClass || ""}">${item.badge}</div>` : ""}
     `;
@@ -629,6 +715,22 @@ function renderSubmenu(){
   });
   submenuEl.innerHTML = "";
   submenuEl.appendChild(wrap);
+}
+
+// Embed responsive du player Twitch — technique décrite par Phil Nash
+// (padding-top 56.25% pour garder un ratio 16:9 quelle que soit la largeur).
+// Le paramètre "parent" est obligatoire et doit correspondre au(x) domaine(s)
+// qui hébergent cette page, sinon Twitch refuse d'afficher le lecteur.
+function mountTwitchEmbed(container, channel){
+  if(!container) return;
+  const hostname = window.location.hostname || "localhost";
+  const src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&parent=${encodeURIComponent(hostname)}&muted=true`;
+  const iframe = document.createElement("iframe");
+  iframe.src = src;
+  iframe.allowFullscreen = true;
+  iframe.setAttribute("scrolling", "no");
+  iframe.setAttribute("title", `Preview Twitch de ${channel}`);
+  container.appendChild(iframe);
 }
 
 function selectCategory(i){
@@ -684,17 +786,13 @@ async function fetchDiscord(){
       : null;
     const statusMap = { online:"En ligne", idle:"Absent", dnd:"Ne pas déranger", offline:"Hors ligne" };
     const statusClassMap = { online:"online", idle:"idle", dnd:"dnd", offline:"" };
-    let subtitle = statusMap[d.discord_status] || "Statut inconnu";
-    if(d.activities && d.activities.length){
-      const act = d.activities.find(a => a.type !== 4) || d.activities[0];
-      if(act && act.name) subtitle = `${statusMap[d.discord_status]} · ${act.name}`;
-    }
+    const badgeClassMap = { online:"online", idle:"idle", dnd:"dnd", offline:"offline" };
     categories[0].statusClass = statusClassMap[d.discord_status] || "";
     categories[0].items[0] = {
       title: `${user.username}`,
-      subtitle,
-      badge: statusMap[d.discord_status],
-      badgeClass: d.discord_status === "online" ? "online" : "",
+      subtitle: "",
+      badge: statusMap[d.discord_status] || "Statut inconnu",
+      badgeClass: badgeClassMap[d.discord_status] || "offline",
       url: `https://discord.com/users/${user.id}`,
       pfp
     };
@@ -729,20 +827,21 @@ async function fetchTwitch(){
     }
 
     categories[1].statusClass = isLive ? "live" : "";
-    categories[1].items = [{
+    categories[1].items[0] = {
       title: CONFIG.twitch.channel,
       subtitle,
       badge,
       badgeClass: isLive ? "live" : "",
       url: `https://twitch.tv/${CONFIG.twitch.channel}`,
       pfp: CONFIG.twitch.pfp
-    }];
+    };
+    if(categories[1].items[1]) categories[1].items[1].live = isLive;
   }catch(err){
-    categories[1].items = [{
+    categories[1].items[0] = {
       title: CONFIG.twitch.channel,
       subtitle:"Statut indisponible",
       badge:"", url:`https://twitch.tv/${CONFIG.twitch.channel}`, pfp:CONFIG.twitch.pfp
-    }];
+    };
   }
   renderCategories();
   if(activeCatIndex === 1) renderSubmenu();
@@ -750,11 +849,13 @@ async function fetchTwitch(){
 
 /* =======================================================================
    LECTEUR DE MUSIQUE
-   - Tirage aléatoire pour "suivant" (sans répéter un morceau parmi les
-     3 derniers tirés au sort)
-   - "Précédent" revient exactement sur la piste jouée avant (vrai
-     historique, pas un nouveau tirage)
-   - Pochette + titre + artiste, play/pause, skip, volume, minimisation
+   - Les pistes restent TOUJOURS dans l'ordre 1 → 10 (CONFIG.tracks).
+   - A chaque arrivée sur le site, on démarre sur une piste de départ
+     tirée au hasard (ex: la 3 ou la 9), jamais toujours la même.
+   - Ensuite "suivant"/"précédent" avancent/reculent simplement d'un cran
+     dans cet ordre fixe, en bouclant (après la 10 on revient à la 1,
+     avant la 1 on revient à la 10).
+   - Pochette + titre + artiste, play/pause, skip, volume, minimisation.
    ======================================================================= */
 const musicAudio = new Audio();
 musicAudio.volume = 0.6;
@@ -772,33 +873,11 @@ const mp = {
   panel: document.getElementById("music-player")
 };
 
-let currentTrackIndex = null;
-let recentHistory = []; // indices des derniers morceaux tirés au sort (max 3), sert à éviter les répétitions
-let isPlaying = false;
-
-// Historique réel de la séquence jouée, pour que "précédent" revienne
-// exactement sur la piste d'avant (pas un nouveau tirage aléatoire).
-let playHistory = [];
-let historyPointer = -1;
-
 const ICON_PLAY  = '<path d="M8 5v14l11-7z"/>';
 const ICON_PAUSE = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
 
-function pickNextTrackIndex(){
-  const n = CONFIG.tracks.length;
-  if(n === 0) return null;
-  const historyLimit = Math.min(3, n - 1);
-  let idx;
-  let tries = 0;
-  do{
-    idx = Math.floor(Math.random() * n);
-    tries++;
-  } while(recentHistory.includes(idx) && tries < 50);
-
-  recentHistory.push(idx);
-  if(recentHistory.length > historyLimit) recentHistory.shift();
-  return idx;
-}
+let currentTrackIndex = null;
+let isPlaying = false;
 
 function loadTrack(idx){
   const t = CONFIG.tracks[idx];
@@ -828,7 +907,7 @@ function updatePlayIcon(){
 
 function togglePlay(){
   if(currentTrackIndex === null){
-    goNext();
+    startPlaylist();
     return;
   }
   if(isPlaying){
@@ -841,22 +920,29 @@ function togglePlay(){
   updatePlayIcon();
 }
 
+// Piste suivante dans l'ordre fixe, en bouclant après la dernière
 function goNext(){
-  const idx = pickNextTrackIndex();
-  // si on avait reculé dans l'historique, on efface le "futur" existant
-  // (comme dans un navigateur : revenir en arrière puis avancer ouvre une nouvelle page)
-  playHistory = playHistory.slice(0, historyPointer + 1);
-  playHistory.push(idx);
-  historyPointer = playHistory.length - 1;
+  const n = CONFIG.tracks.length;
+  if(n === 0) return;
+  const idx = currentTrackIndex === null ? 0 : (currentTrackIndex + 1) % n;
   playTrackAt(idx);
 }
 
+// Piste précédente dans l'ordre fixe, en bouclant avant la première
 function goPrev(){
-  if(historyPointer > 0){
-    historyPointer--;
-    playTrackAt(playHistory[historyPointer]);
-  }
-  // si on est déjà sur la toute première piste de l'historique, rien à faire
+  const n = CONFIG.tracks.length;
+  if(n === 0) return;
+  const idx = currentTrackIndex === null ? 0 : (currentTrackIndex - 1 + n) % n;
+  playTrackAt(idx);
+}
+
+// Point de départ : tiré au hasard une fois par arrivée sur le site,
+// puis on suit l'ordre fixe 1→10 (en boucle) à partir de là.
+function startPlaylist(){
+  const n = CONFIG.tracks.length;
+  if(n === 0) return;
+  const startIdx = Math.floor(Math.random() * n);
+  playTrackAt(startIdx);
 }
 
 musicAudio.addEventListener("ended", () => {
@@ -890,7 +976,7 @@ setInterval(fetchTwitch, 60000);
 window.addEventListener("load", () => {
   setTimeout(() => {
     document.getElementById("boot-screen").classList.add("hidden");
-    goNext();
+    startPlaylist();
   }, 2300);
 });
 </script>
